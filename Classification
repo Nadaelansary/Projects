@@ -1,0 +1,221 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+%matplotlib inline
+plt.style.use("seaborn")
+
+df = pd.read_csv('https://raw.githubusercontent.com/GUC-DM/W2023/main/data/telecom_churn.csv')
+
+df.head()
+df
+
+df.info()
+
+df.describe()
+
+df.isnull().sum()
+
+for column in df.columns:
+    print(f"{column} : {df[column].unique()}")
+    print("====================================")
+
+for column in df.columns:
+    print(f"{column}: Number of unique values {df[column].nunique()}")
+    print("==========================================================")
+
+#dropping customerID as it has null values AND all values are unique so we will not use it in splitting
+df.drop(['customerID'], axis="columns", inplace=True)
+df
+
+
+#converting monthly charges and total charges to float variables
+df['MonthlyCharges'] = df['MonthlyCharges'].str.replace('\$', '', regex=True)
+df['MonthlyCharges'] = df['MonthlyCharges'].str.replace('/m', '', regex=True)
+df['MonthlyCharges'] = df['MonthlyCharges'].astype(float)
+df['TotalCharges'] = df['TotalCharges'].str.replace('\$', '', regex=True)
+df['TotalCharges'] = df['TotalCharges'].astype(float)
+
+#defining all the categorical attributes so we can figure out how to order the dataset
+categorical_col = []
+for column in df.columns:
+    if df[column].dtype == object:
+        categorical_col.append(column)
+        print(f"{column} : {df[column].unique()}")
+        print("====================================")
+
+#getting the mean/avg of the total charges column as we cannot have null values, so we will replace any missing values with the avg
+mean_total_charges = df['TotalCharges'].mean()
+df['TotalCharges'].fillna(mean_total_charges, inplace=True)
+
+#converting churn column to numerical to aid in visuallization section
+df['Churn'] = df['Churn'].astype('category').cat.codes
+df['Churn']
+
+#so we can order the dataset
+df['Contract'] = pd.Categorical(df['Contract'],
+                                      categories=['Month-to-month', 'One year', 'Two year'],
+                                      ordered=True)
+df['Contract']
+
+#ordering the dataset (month --> 1 year --> 2 years)
+df[df['Contract'] <= 'Month-to-month']
+
+**Visualization**
+
+#counting how many of each value there is in churn column
+df['Churn'].value_counts()
+
+df['Churn'].value_counts() / df['Churn'].count()
+
+categorical_features = categorical_col.copy()
+categorical_features.remove('Churn')
+
+categorical_features
+
+# Plotting every feature average in relation to the "target"
+sns.set(font_scale=1.2)
+plt.figure(figsize=(40, 40))
+
+for i, column in enumerate(categorical_features, 1):
+    plt.subplot(5, 4, i)
+    g = sns.barplot(x=column, y='Churn', data=df)
+    g.set_xticklabels(g.get_xticklabels(), rotation=90)
+    plt.ylabel('Churn Count')
+    plt.xlabel(f'{column}')
+
+
+sns.set(font_scale=1.2)
+plt.figure(figsize=(10, 8))  # Adjust the figure size as needed
+
+column = 'PaymentMethod'  # Specify the column you want to plot
+
+g = sns.barplot(x=column, y='Churn', data=df)
+g.set_xticklabels(g.get_xticklabels(), rotation=90)
+plt.ylabel('Churn Count')
+plt.xlabel(f'{column}')
+plt.title(f'Churn Rates by {column}')
+plt.tight_layout()  # Adjusts the subplot parameters to fit the plot area
+
+plt.show()
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+#drawing the boxplots for churn vs tenure so we can visualize the quartiles
+sns.set(font_scale=1.2)
+plt.figure(figsize=(8, 6))
+
+#making a temp dataset so we can only represent the customers who did churn
+temp=df[df['Churn']==1]
+
+sns.boxplot(x='Churn', y='tenure', data=temp)
+plt.xlabel('Churn')
+plt.ylabel('Tenure')
+plt.title('Churning relating to Tenure')
+plt.show()
+
+temp['tenure'].describe()
+
+## Data Preparation for Modelling
+
+df_encoded = df.copy()
+
+#encoding and removing the Contract column
+df_encoded['Contract'] = df_encoded['Contract'].cat.codes
+df_encoded['Contract']
+
+categorical_features.remove('Contract')
+
+df_encoded = pd.get_dummies(df_encoded, columns=categorical_features)
+df_encoded.info()
+
+#droping the redundant columns/values
+df_encoded.drop(['gender_Male', 'Partner_Yes','Dependents_Yes','PhoneService_No','PaperlessBilling_No'], axis='columns', inplace=True)
+df_encoded.columns
+
+from sklearn.model_selection import train_test_split
+
+X = df_encoded.drop('Churn', axis=1)
+y = df_encoded['Churn']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+## Modelling
+
+from sklearn.tree import DecisionTreeClassifier
+
+tree_clf = DecisionTreeClassifier(random_state=42)
+tree_clf.fit(X_train, y_train)
+
+#modelling the tree
+import graphviz
+from sklearn.tree import export_graphviz
+dot_data = export_graphviz(tree_clf, out_file=None,
+                           feature_names=X.columns,
+                           class_names=['No', 'Yes'],
+                           filled=True, rounded=True,
+                           special_characters=True)
+graph = graphviz.Source(dot_data)
+graph
+
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import StratifiedKFold
+
+clf = DecisionTreeClassifier(random_state=42)
+
+skf = StratifiedKFold(n_splits=3)
+
+scores = cross_val_score(clf, X_train, y_train, cv=skf, scoring='f1')
+scores
+
+print("Score: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+
+## Evaluation
+
+#calculating the train results, accuracy score, classification report, and confusion matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+def print_score(clf, X_train, y_train, X_test, y_test, train=True):
+    if train:
+        pred = clf.predict(X_train)
+        clf_report = pd.DataFrame(classification_report(y_train, pred, output_dict=True))
+        print("Train Result:")
+        print("===============================================")
+        print(f"Accuracy Score: {accuracy_score(y_train, pred) * 100:.2f}%")
+        print("_______________________________________________")
+        print(f"CLASSIFICATION REPORT:\n{clf_report}")
+        print("_______________________________________________")
+        print(f"Confusion Matrix: \n {confusion_matrix(y_train, pred)}\n")
+
+    elif train==False:
+        pred = clf.predict(X_test)
+        clf_report = pd.DataFrame(classification_report(y_test, pred, output_dict=True))
+        print("Test Result:")
+        print("===============================================")
+        print(f"Accuracy Score: {accuracy_score(y_test, pred) * 100:.2f}%")
+        print("_______________________________________________")
+        print(f"CLASSIFICATION REPORT:\n{clf_report}")
+        print("_______________________________________________")
+        print(f"Confusion Matrix: \n {confusion_matrix(y_test, pred)}\n")
+
+print_score(tree_clf, X_train, y_train, X_test, y_test, train=True)
+print_score(tree_clf, X_train, y_train, X_test, y_test, train=False)
+
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+cm = confusion_matrix(y_test, tree_clf.predict(X_test), labels=tree_clf.classes_,normalize='true')
+disp = ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=tree_clf.classes_)
+disp.plot()
+plt.grid(False)
+
+from sklearn.metrics import f1_score, precision_score, recall_score
+
+pred = tree_clf.predict(X_test)
+
+print('Precision: ',precision_score(y_test,pred))
+print('=======================================')
+print('Recall: ',recall_score(y_test,pred))
+print('=======================================')
+print('F1_score: ',f1_score(y_test,pred))
