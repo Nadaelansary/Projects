@@ -1,0 +1,310 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+%matplotlib inline
+plt.style.use("seaborn")
+
+try:
+    df = pd.read_csv('car_prices.csv')
+except:
+    df = pd.read_csv('https://raw.githubusercontent.com/GUC-DM/W2023/main/data/car_prices.csv')
+
+df.head()
+
+df.info()
+
+df.describe()
+
+df.isnull().sum()
+
+#importing
+
+import pandas as pd
+import numpy as np
+try:
+    df = pd.read_csv('car_prices.csv')
+except:
+    df = pd.read_csv('https://raw.githubusercontent.com/GUC-DM/W2023/main/data/car_prices.csv')
+
+
+#renaming columns
+
+df.rename(columns={'odometer': 'odometer(mi)'}, inplace=True)
+df.rename(columns={'sellingprice': 'sellingPrice'}, inplace=True)
+df.rename(columns={'mmr': 'mmr($)'}, inplace=True)
+
+#setting categories to the body column
+
+def body_categ(body):
+    body_mapping = {
+        'sedan': 'Sedan',
+        'g sedan': 'Sedan',
+        'suv': 'SUV',
+        'wagon': 'Wagon',
+        'coupe': 'Coupe',
+        'convertible': 'Convertible',
+        'hatchback': 'Hatchback',
+        'van': 'Minivan',
+        'granturismo convertible': 'Convertible',
+        'tsx sport wagon': 'Wagon',
+        'cts-v coupe': 'Coupe',
+        'q60 coupe': 'Coupe',
+        'granturismo convertible': 'Convertible',
+        'tsx sport wagon': 'Wagon',
+        'gran turismo convertible': 'Convertible',
+        'cts coupe': 'Coupe',
+        'gran turismo convertible': 'Convertible',
+        'g convertible': 'Convertible',
+        'beetle convertible': 'Convertible',
+        'g coupe': 'Coupe',
+        'quad cab': 'Pickup Truck',
+        'supercab': 'Pickup Truck',
+        'CrewMax Cab': 'Pickup Truck',
+        'crewmax cab': 'Pickup Truck',
+        'Cab Plus 4': 'Pickup Truck',
+        'extended cab': 'Pickup Truck',
+        'king cab': 'Pickup Truck',
+        'crew cab': 'Pickup Truck',
+        'double cab': 'Pickup Truck',
+        'supercrew': 'Pickup Truck',
+        'club cab': 'Pickup Truck',
+        'regular-cab': 'Pickup Truck',
+        'access cab': 'Pickup Truck',
+        'xtracab': 'Pickup Truck',
+        'mega cab': 'Pickup Truck',
+        'regular cab': 'Pickup Truck',
+        'genesis coupe': 'Coupe',
+        'koup': 'Coupe',
+        'q60 convertible': 'Convertible',
+        'elantra coupe': 'Coupe',
+        'cts coupe': 'Coupe',
+        'cts wagon': 'Wagon',
+        'promaster cargo van': 'Minivan',
+        'promaster cargo van': 'Minivan',
+        'transit van': 'Minivan',
+        'minivan': 'Minivan',
+        'e-series van': 'Minivan',
+        'E-Series Van': 'Minivan',
+        'Transit Van': 'Minivan'
+    }
+
+    def map_body(body):
+        for key, value in body_mapping.items():
+            if key.lower() in body.lower():
+                return value
+        return body
+
+    return body.apply(map_body)
+
+
+#apply function of the body column
+
+df['body'] = body_categ(df['body'])
+
+#capitalizing
+
+#remove el mi men odometer w akhaleeha float + remove el $ men price w mmr w akhaleehom int
+df['interior'] = df['interior'].str.capitalize()
+df['color'] = df['color'].str.capitalize()
+df['transmission'] = df['transmission'].str.capitalize()
+df['seller'] = df['seller'].str.title()
+df['sellingPrice'] = df['sellingPrice'].str.replace('\$', '', regex=True)
+df['mmr($)'] = df['mmr($)'].str.replace('\$', '', regex=True)
+df['sellingPrice'] = df['sellingPrice'].astype(int)
+df['mmr($)'] = df['mmr($)'].astype(int)
+df['odometer(mi)'] = df['odometer(mi)'].astype(str)
+df['odometer(mi)'] = df['odometer(mi)'].str.replace('mi', '', regex=True)
+df['odometer(mi)'] = df['odometer(mi)'].astype(float)
+
+#Make the Transmission Column Binary
+
+#df['transmission'].replace({'Automatic': 1, 'Manual': 0}, inplace=True)
+
+#dropping el columns el mesh relative leena
+df.drop('state', axis=1, inplace=True)
+df.drop('vin', axis=1, inplace=True)
+df.drop('seller', axis=1, inplace=True)
+df.drop('saledate', axis=1, inplace=True)
+
+df
+
+**Visualization**
+
+# Basic, minimal plot example
+sns.countplot(x='color', data=df)
+
+# Much better plot, with sorting in descending order, rotated x-axis labels for clarity, and a plot title
+# Your visualizations should be neatly presented like the example below.
+large_to_small = df.groupby('color').size().sort_values(ascending=False)
+sns.countplot(x='color', data=df, order=large_to_small.index).set(title='Most popular colors sold on the used car auction market')
+plt.xticks(rotation=90)
+plt.tight_layout()
+
+
+#Sorting in Descending Order to make it more clear and a better plot
+large_to_small = df.groupby('make').size().sort_values(ascending=False)
+
+#Drawing a Count Plot to show the Most Popular Car Brands and Setting a Plot Title
+sns.countplot(x=df.make, order=large_to_small.index).set(title='Most Popular Car Brands')
+
+#Renaming the X-axis and Y-axis Labels and Rotating the X-axis Labels to make it clear
+plt.xticks(rotation=90)
+plt.tight_layout()
+plt.xlabel('Car Brands')
+plt.ylabel('Count')
+
+
+#Drawing a Bar Plot to show the Selling Prices of each of the Transmission Categories, Setting a Plot Title, and Renaming the X-axis and Y-axis Labels
+sns.barplot(x=df.transmission,y=df.sellingPrice, hue=df.transmission).set(title='Selling Price of Each of The Transmission Categories')
+plt.xlabel('Transmission')
+plt.ylabel('Selling Price')
+
+#Setting the Size of the Figure in order to make the Box Plot clear
+f = plt.figure(figsize=(40,12))
+
+#Drawing a Box Plot to show the distribution of the Selling Prices of each Car Make, Setting a Plot Title, and Renaming the X-axis and Y-axis Labels
+sns.boxplot(x=df.make, y=df.sellingPrice).set(title='Selling Prices of Each Car Make')
+plt.xlabel('Car Make')
+plt.ylabel('Selling Price')
+
+f = plt.figure(figsize=(14,6))
+ax = f.add_subplot(121)
+sns.scatterplot(x='odometer(mi)', y='sellingPrice', data=df, palette='magma', ax=ax)
+ax.set_title('Mileage VS Selling Price Scatter Plot')
+
+# Plot a line of best fit for each scatter plot
+sns.lmplot(x='odometer(mi)', y='sellingPrice', data=df, line_kws={"color": "red"}, height=6);
+
+f = plt.figure(figsize=(14,6))
+ax = f.add_subplot(121)
+sns.scatterplot(x='condition', y='sellingPrice', data=df, palette='plasma', ax=ax)
+ax.set_title('Condition VS Selling Price Scatter Plot')
+
+# Plot a line of best fit for each scatter plot
+sns.lmplot(x='condition', y='sellingPrice', data=df, line_kws={"color": "red"}, height=6);
+
+#Sort to make a better Bar Plot
+large_to_small = df.groupby('body').size().sort_values(ascending=False)
+
+#Darwing a Bar Plot to show the Selling Price of each of the Body Categories, Setting a Plot Title, and Renaming the X-axis and Y-axis Labels
+sns.barplot(x=df.body, y=df.sellingPrice, order=large_to_small.index).set(title='Selling Price of Each of The Body Categories')
+plt.xlabel('Car Body')
+plt.ylabel('Selling Price')
+
+## Data Preparation for Modelling
+
+corr = df.corr()
+corr
+
+categorical_columns = ['make', 'model','body','transmission','trim']
+df_encode = pd.get_dummies(data=df,
+                           columns=categorical_columns,
+                           drop_first=True,
+                           dtype='int8')
+df_encode.head()
+
+numerical_columns = ['year', 'condition', 'odometer(mi)']
+
+
+df_encode[numerical_columns] = (
+
+    df_encode[numerical_columns] - df_encode[numerical_columns].min()
+
+) /(
+
+    df_encode[numerical_columns].max() - df_encode[numerical_columns].min()
+)
+
+
+df_encode.head()
+
+## Modelling
+
+from sklearn.model_selection import train_test_split
+
+x = df_encode.drop('sellingPrice',axis=1) # Independent variable
+y = df_encode['sellingPrice'] # Dependent variable
+
+x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.2,random_state=23)
+
+print('Training dataset size:', x_train.shape[0])
+print('Testing dataset size:', x_test.shape[0])
+
+from sklearn.linear_model import LinearRegression
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(x_train, y_train);
+
+parameter = ['theta_0'] + ['theta_{}'.format(i+1) for i in range(x.shape[1])]
+columns = ['y-intersect'] + list(x.columns.values)
+sk_theta = pd.Series([lin_reg.intercept_] + list(lin_reg.coef_))
+
+parameter_df = pd.DataFrame({'parameter':parameter,'column':columns, 'theta_value': sk_theta})
+parameter_df
+
+# sklearn regression module
+y_pred = lin_reg.predict(x_test)
+
+# Evaluation
+from sklearn.metrics import mean_squared_error
+rmse = mean_squared_error(y_pred, y_test, squared=False)
+
+# R_square
+R_square = lin_reg.score(x_test,y_test)
+print('The root mean square error (RMSE) is: ', rmse)
+print('R^2 is:', R_square)
+
+#line of best fit and scatter plot for question 4
+sns.lmplot(x='odometer(mi)', y='sellingPrice', data=df, line_kws={"color": "red"}, height=6);
+#line of best fit and  scatter plot for question 5
+sns.lmplot(x='condition', y='sellingPrice', data=df, line_kws={"color": "red"}, height=6);
+
+
+#Calculating the IQR for each of the Selling Price and the Odometer
+Q1_sellingprice = df['sellingPrice'].quantile(0.25)
+Q3_sellingprice = df['sellingPrice'].quantile(0.75)
+IQR_sellingprice = Q3_sellingprice - Q1_sellingprice
+lower_sellingprice = Q1_sellingprice - 1.5*IQR_sellingprice
+upper_sellingprice = Q3_sellingprice + 1.5*IQR_sellingprice
+Q1_odometer = df['odometer(mi)'].quantile(0.25)
+Q3_odometer = df['odometer(mi)'].quantile(0.75)
+IQR_odometer = Q3_odometer - Q1_odometer
+lower_odometer = Q1_odometer - 1.5*IQR_odometer
+upper_odometer = Q3_odometer + 1.5*IQR_odometer
+
+#Creating Upper and Lower Arrays for each of the Selling Price and the Odometer to indicate the Outliers
+upper_array_sellingprice = np.where(df['sellingPrice']>=upper_sellingprice)[0]
+lower_array_sellingprice = np.where(df['sellingPrice']<=lower_sellingprice)[0]
+upper_array_odometer = np.where(df['odometer(mi)']>=upper_odometer)[0]
+lower_array_odometer = np.where(df['odometer(mi)']<=lower_odometer)[0]
+
+#Dropping the Outliers
+df.drop(index=upper_array_sellingprice, inplace=True)
+df.drop(index=lower_array_sellingprice, inplace=True)
+df.drop(index=upper_array_odometer, inplace=True)
+df.drop(index=lower_array_odometer, inplace=True)
+
+#Showing the New Dataframe
+df
+
+f = plt.figure(figsize=(14,6))
+ax = f.add_subplot(121)
+sns.scatterplot(x='odometer(mi)', y='sellingPrice', data=df, palette='magma', ax=ax)
+ax.set_title('Mileage VS Selling Price Scatter Plot')
+
+# Plot a line of best fit for each scatter plot
+sns.lmplot(x='odometer(mi)', y='sellingPrice', data=df, line_kws={"color": "red"}, height=6);
+
+f = plt.figure(figsize=(14,6))
+ax = f.add_subplot(121)
+sns.scatterplot(x='condition', y='sellingPrice', data=df, palette='plasma', ax=ax)
+ax.set_title('Condition VS Selling Price Scatter Plot')
+
+# Plot a line of best fit for each scatter plot
+sns.lmplot(x='condition', y='sellingPrice', data=df, line_kws={"color": "red"}, height=6);
+
+corr = df.corr()
+corr
